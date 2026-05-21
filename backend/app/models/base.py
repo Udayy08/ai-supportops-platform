@@ -13,7 +13,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Index, String, func, text
+from sqlalchemy import DateTime, Index, String, func, text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -58,6 +58,7 @@ class TenantMixin:
     """
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
