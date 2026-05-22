@@ -11,6 +11,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 import random
+import asyncio
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,3 +91,22 @@ class WorkflowService:
                 "total_latency_ms": elapsed_ms,
                 "final_disposition": "failed",
             }
+
+    async def run_async(
+        self,
+        tenant_id: str,
+        customer_message: str,
+        ticket_id: str | None = None,
+        customer_name: str = "Customer",
+    ) -> dict[str, Any]:
+        """
+        Execute the full agent workflow asynchronously using a background thread.
+        This prevents blocking the main FastAPI event loop.
+        """
+        return await asyncio.to_thread(
+            self.run_sync,
+            tenant_id=tenant_id,
+            customer_message=customer_message,
+            ticket_id=ticket_id,
+            customer_name=customer_name,
+        )

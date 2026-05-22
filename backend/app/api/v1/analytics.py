@@ -29,6 +29,16 @@ async def get_overview(current_user: CurrentUser, db: DBSession) -> KPIOverviewR
         ai_resolution_rate=0.0,
     )
 
+@router.get(
+    "/summary",
+    response_model=KPIOverviewResponse,
+    summary="Dashboard summary",
+    description="Returns aggregate KPI metrics for the entire system."
+)
+async def get_summary(current_user: CurrentUser, db: DBSession) -> KPIOverviewResponse:
+    # Delegate to overview for now
+    return await get_overview(current_user=current_user, db=db)
+
 
 @router.get("/tickets", response_model=TicketVolumeResponse, summary="Ticket volume over time")
 async def get_ticket_volume(

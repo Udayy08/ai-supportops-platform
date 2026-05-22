@@ -13,6 +13,7 @@ from app.api.v1 import (
     knowledge,
     tickets,
     webhooks,
+    workflow,
 )
 
 api_router = APIRouter()
@@ -25,3 +26,4 @@ api_router.include_router(analytics.router)
 api_router.include_router(agents.router)
 api_router.include_router(evaluations.router)
 api_router.include_router(webhooks.router)
+api_router.include_router(workflow.router)

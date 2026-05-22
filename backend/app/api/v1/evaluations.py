@@ -9,10 +9,10 @@ from fastapi import APIRouter, status
 from app.api.deps import CurrentUser, DBSession, Pagination
 from app.core.exceptions import NotFoundException
 from app.schemas.agent import (
-    EvaluationMetricsSummary,
     EvaluationResponse,
     EvaluationRunRequest,
 )
+from app.schemas.evaluation import EvaluationMetricsResponse
 
 router = APIRouter(prefix="/evaluations", tags=["Evaluations"])
 
@@ -49,19 +49,18 @@ async def list_evaluations(
     return [EvaluationResponse.model_validate(e) for e in evals]
 
 
-@router.get("/metrics", response_model=EvaluationMetricsSummary, summary="Aggregate eval metrics")
+@router.get("/metrics", response_model=EvaluationMetricsResponse, summary="Aggregate eval metrics")
 async def get_metrics(
     current_user: CurrentUser,
     db: DBSession,
-) -> EvaluationMetricsSummary:
+) -> EvaluationMetricsResponse:
     # TODO: Compute real aggregations from DB (Phase 4)
-    return EvaluationMetricsSummary(
+    return EvaluationMetricsResponse(
+        total_evaluations=0,
         avg_faithfulness=0.0,
         avg_answer_relevancy=0.0,
-        avg_context_relevancy=0.0,
         avg_context_precision=0.0,
-        total_evaluations=0,
-        period_days=30,
+        avg_context_recall=0.0,
     )
 
 

@@ -30,6 +30,21 @@ class TicketUpdateRequest(BaseModel):
     category: str | None = None
     assigned_to: uuid.UUID | None = None
 
+class TicketProcessRequest(BaseModel):
+    ticket_id: uuid.UUID
+    additional_context: str | None = None
+
+from enum import Enum
+
+class ApprovalDecision(str, Enum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+class HumanReviewRequest(BaseModel):
+    ticket_id: uuid.UUID
+    approval_decision: ApprovalDecision
+    agent_override_notes: str | None = None
+
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
