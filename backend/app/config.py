@@ -105,10 +105,14 @@ class Settings(BaseSettings):
     def chroma_url(self) -> str:
         return f"http://{self.chroma_host}:{self.chroma_port}"
 
-    # ── LLM / OpenAI ─────────────────────────────────────────────────────────
-    openai_api_key: str = ""
-    openai_default_model: str = "gpt-4o"
-    openai_fast_model: str = "gpt-4o-mini"
+    # ── LLM / Groq ───────────────────────────────────────────────────────────
+    groq_api_key: str = ""
+    groq_default_model: str = "llama-3.3-70b-versatile"
+    groq_fast_model: str = "llama-3.1-8b-instant"
+
+    # ── Agent Workflow ────────────────────────────────────────────────────────
+    agent_confidence_threshold: float = 0.7
+    agent_max_retries: int = 2
 
     # ── LangSmith ────────────────────────────────────────────────────────────
     langchain_tracing_v2: bool = False
