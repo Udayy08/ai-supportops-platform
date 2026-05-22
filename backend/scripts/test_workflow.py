@@ -112,6 +112,15 @@ def run_test():
         print(f"\n[Workflow Metadata]")
         print(f"  Nodes Visited: {' → '.join(result.get('nodes_visited', []))}")
         print(f"  Total Latency: {result.get('total_latency_ms')}ms")
+        print(f"  Queued for Offline Eval: {result.get('queued_for_evaluation', False)}")
+        
+        if result.get("langsmith_run_id"):
+            print(f"  LangSmith Run ID: {result.get('langsmith_run_id')}")
+            print(f"  LangSmith Run URL: {result.get('langsmith_run_url') or 'Not available (check credentials)'}")
+            
+        metrics = result.get("metrics")
+        if metrics:
+            print(f"  Token Usage: {metrics.get('total_tokens')} (Prompt: {metrics.get('prompt_tokens')}, Completion: {metrics.get('completion_tokens')})")
 
         if result.get("error"):
             print(f"\n  ⚠️  ERROR: {result['error']}")

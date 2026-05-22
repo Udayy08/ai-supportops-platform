@@ -120,6 +120,10 @@ class Settings(BaseSettings):
     langchain_api_key: str = ""
     langchain_project: str = "ai-supportops"
 
+    # ── Evaluation ───────────────────────────────────────────────────────────
+    enable_ragas: bool = True
+    evaluation_sample_percentage: int = 10
+
     # ── Rate Limiting ─────────────────────────────────────────────────────────
     rate_limit_per_minute: int = 100
 

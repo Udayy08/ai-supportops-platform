@@ -48,3 +48,7 @@ torch>=2.2.0
 # ── Multi-Agent Workflow (Phase 5) ─────────────────────────────────────────────
 langgraph>=0.0.28
 langchain-groq>=0.1.0
+
+# ── Evaluation & Observability (Phase 6) ───────────────────────────────────────
+ragas>=0.1.5
+langsmith>=0.1.20

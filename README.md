@@ -120,6 +120,12 @@ CHROMA_HOST="localhost"
 CHROMA_PORT=8001
 GROQ_API_KEY="gsk_your_groq_api_key"
 AGENT_CONFIDENCE_THRESHOLD=0.7
+
+# Observability & Evaluation
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_API_KEY="ls__..."
+ENABLE_RAGAS=true
+EVALUATION_SAMPLE_PERCENTAGE=10
 ```
 
 ## 17. Running Migrations
@@ -158,11 +164,12 @@ The platform is successfully built up to the agent orchestration layer. The infr
 - ✅ **Phase 3**: Database Layer (SQLAlchemy/Alembic)
 - ✅ **Phase 4**: RAG Pipeline (ChromaDB + sentence-transformers)
 - ✅ **Phase 5**: LangGraph Multi-Agent Workflow (Groq integration)
+- ✅ **Phase 6**: Evaluation & Observability (LangSmith & RAGAS)
 
 ## 23. Future Roadmap
-- **Phase 6**: API Integration & Background Tasks (Celery queues, HTTP controllers).
-- **Phase 7**: Frontend Dashboard (Next.js enterprise UI).
-- **Phase 8**: Production Deployment & Kubernetes orchestration.
+- **Phase 7**: API Integration & Background Tasks (Celery queues, HTTP controllers).
+- **Phase 8**: Frontend Dashboard (Next.js enterprise UI).
+- **Phase 9**: Production Deployment & Kubernetes orchestration.
 
 ## 24. Known Limitations
 1. **CPU Bound Embeddings**: `all-MiniLM-L6-v2` runs on the CPU. Large document ingestions will spike CPU usage without GPU acceleration.

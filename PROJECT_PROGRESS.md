@@ -23,10 +23,9 @@
 - Phase 3: Database Layer
 - Phase 4: RAG Pipeline
 - Phase 5: LangGraph Multi-Agent Workflow
+- Phase 6: Evaluation & Observability
 
 **Pending Phases:**
-**Pending Phases:**
-- Phase 6: Evaluation & Observability
 - Phase 7: FastAPI APIs
 - Phase 8: Frontend UI
 - Phase 9: Deployment
@@ -39,6 +38,7 @@
 - Robust RAG ingestion and retrieval utilizing `sentence-transformers`.
 - 7-Node LangGraph multi-agent orchestration capable of completely autonomous problem resolution, hallucination detection, and human-in-the-loop escalation.
 - Provider-agnostic LLM interfacing powered by Groq.
+- Native LangSmith workflow monitoring and RAGAS offline evaluation engine for Faithfulness and Context Precision scoring.
 
 **Infrastructure Status:**
 - `docker-compose.yml` configured and running perfectly locally.
@@ -327,10 +327,71 @@ Build the autonomous support agent orchestration layer using LangGraph and Groq.
 
 ---
 
-## Phase 6 Planning
+## Phase 6: Evaluation & Observability
+
+### Objective
+Implement enterprise-grade observability and offline evaluation capabilities to monitor agent workflow execution, track AI hallucinations, and assess answer quality.
+
+### Architecture Implemented
+- **Real-time Observability (`app/observability/`)**: Deep integration with LangSmith. Traces every LangGraph node execution, capturing token usage, latency, inputs, outputs, and mapping a run URL directly to the backend. **Fully optional and configurable** via `LANGCHAIN_TRACING_V2`; fails gracefully if disabled.
+- **Offline Evaluation (`app/evaluation/`)**: A dedicated evaluation engine powered by the RAGAS framework. It **strictly utilizes Groq** (`GROQ_FAST_MODEL` / `llama-3.1-8b-instant`), with zero OpenAI dependencies. Asynchronously scores historical conversations across 4 key metrics: Faithfulness, Answer Relevancy, Context Precision, and Context Recall.
+- **Sampling Framework**: To conserve tokens and limit API costs, RAGAS evaluations are probabilistic. The workflow actively samples runs based on `EVALUATION_SAMPLE_PERCENTAGE` and `ENABLE_RAGAS` configuration.
+- **Quality Persistence**: Granular confidence scores and hallucination flags from LangGraph states are extracted and persisted to `ConfidenceScore` and `HallucinationFlag` models.
+
+### Files Created
+- `backend/app/evaluation/ragas_evaluator.py`
+- `backend/app/evaluation/confidence.py`
+- `backend/app/evaluation/hallucination.py`
+- `backend/app/observability/langsmith_tracer.py`
+- `backend/app/observability/metrics.py`
+- `backend/app/observability/monitoring.py`
+- `backend/scripts/run_evaluations.py`
+
+### Files Modified
+- `backend/requirements.txt`
+- `backend/app/services/workflow_service.py`
+
+### Dependencies Added
+- `ragas>=0.1.5`
+- `langsmith>=0.1.20`
+
+### Database Changes
+- None required (utilized the existing schema prepared in Phase 3 for `ConfidenceScore`, `HallucinationFlag`, and `WorkflowRun`).
+
+### Docker Changes
+- None
+
+### Validation Performed
+- Executed `scripts/test_workflow.py` to verify successful LangSmith trace generation and token tracking.
+- Executed `scripts/run_evaluations.py` to verify RAGAS integration via the `llama-3.3-70b-versatile` LLM.
+
+### Results
+- Workflows now successfully generate a `langsmith_run_url`.
+- RAGAS evaluation properly formats HuggingFace datasets and accurately scores historical tickets using purely open-source models (Groq Llama).
+
+### Issues Encountered
+- **RAGAS Validation Errors**: RAGAS `0.4.x` requires strict column naming (`user_input`, `response`, `retrieved_contexts`, `reference`) instead of the older `question`/`answer`/`contexts` names.
+- **LangSmith Auth**: Running without a valid `LANGCHAIN_API_KEY` raised `LangSmithAuthError` during multipart payload syncing.
+
+### Fixes Applied
+- Renamed HuggingFace Dataset keys in `ragas_evaluator.py` to match RAGAS `0.4.x` strict validation schemas.
+- Modified `WorkflowService` to handle `langsmith_run_url` extraction safely when `LANGCHAIN_API_KEY` is not present, failing gracefully without breaking the agent loop.
+
+### Lessons Learned
+- RAGAS requires explicit `reference` texts (ground truth) to compute `context_precision` and `context_recall`. Reference-free metrics are limited to `faithfulness` and `answer_relevancy`.
+
+### Known Limitations
+- Offline batch evaluation scripts (`run_evaluations.py`) are CLI-based. They will be transitioned to Celery background workers in Phase 7.
+
+### Git Commit Reference
+*Pending user commit (`git commit -m "feat(eval): implement Phase 6 Evaluation & Observability"`)*
+
+---
+
+## Phase 7 Planning
 
 ### Objectives
-Integrate the LangGraph multi-agent workflow into the FastAPI HTTP layer. Implement background task execution for heavy workloads, and persist all `WorkflowRun` telemetry into the database.
+Integrate the LangGraph multi-agent workflow into the FastAPI HTTP layer. Implement background task execution for heavy workloads, and formally persist all `WorkflowRun` telemetry into the database.
 
 ### Expected Architecture
 - **API Controllers**: FastAPI routers that expose endpoints to initiate ticket resolution workflows.
@@ -341,7 +402,6 @@ Integrate the LangGraph multi-agent workflow into the FastAPI HTTP layer. Implem
 - `backend/app/api/v1/tickets.py` (Update stubs)
 - `backend/app/api/v1/agents.py` (Update stubs)
 - `backend/app/worker.py` (Celery initialization)
-- `backend/app/services/workflow_service.py` (Enhancement)
 
 ### Integration Points
 - Frontend HTTP Clients -> FastAPI Endpoints

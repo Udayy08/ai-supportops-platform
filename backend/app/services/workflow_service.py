@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 import uuid
 from datetime import datetime, timezone
+import random
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,8 @@ from app.agents.graph import build_support_graph
 from app.agents.state import SupportState
 from app.config import settings
 from app.models.workflow import WorkflowRun, WorkflowRunStatus
+from app.observability.langsmith_tracer import get_tracer_context, get_run_url
+from app.observability.metrics import get_run_metrics
 
 
 class WorkflowService:
@@ -53,9 +56,29 @@ class WorkflowService:
         start_time = time.time()
 
         try:
-            result = self.graph.invoke(initial_state)
+            with get_tracer_context() as cb:
+                result = self.graph.invoke(initial_state)
+                
+                # Extract LangSmith details if tracing is enabled
+                if cb and cb.latest_run:
+                    run_id = str(cb.latest_run.id)
+                    result["langsmith_run_id"] = run_id
+                    result["langsmith_run_url"] = get_run_url(run_id)
+                    
+                    # Fetch token metrics
+                    metrics = get_run_metrics(run_id)
+                    result["metrics"] = metrics
+                
             elapsed_ms = int((time.time() - start_time) * 1000)
             result["total_latency_ms"] = elapsed_ms
+            
+            # ── Evaluation Sampling ───────────────────────────────────────────
+            result["queued_for_evaluation"] = False
+            if settings.enable_ragas:
+                # E.g. sample_percentage=10 means 10% chance
+                if random.randint(1, 100) <= settings.evaluation_sample_percentage:
+                    result["queued_for_evaluation"] = True
+            
             return result
         except Exception as e:
             import traceback
