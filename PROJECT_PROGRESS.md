@@ -1,32 +1,215 @@
-# AI SupportOps — Project Progress
+# AI SupportOps — Project Progress & Handover Document
 
-## Phase 1 - Completed
-- **Status**: Completed
-- **Summary**: Implemented FastAPI backend foundation, project structure, configuration management, initial API setup, and base Dockerfiles.
-
-## Phase 2 - Completed
-- **Status**: Completed
-- **Summary**: Implemented Infrastructure setup via Docker Compose (PostgreSQL, Redis, ChromaDB, Nginx).
-
-## Phase 3 - Completed
-- **Status**: Completed
-- **Summary**: Implemented Database layer (SQLAlchemy models, Alembic migrations, Repositories).
+## Documentation Maintenance Policy
+1. After every future phase completion, `README.md` must be updated.
+2. After every future phase completion, `PROJECT_PROGRESS.md` must be updated.
+3. Every phase must include:
+   - architecture summary
+   - files created
+   - files modified
+   - dependencies added
+   - validation results
+   - limitations
+4. Documentation updates must be included in the same git commit as the phase implementation.
+5. No phase may be marked complete until documentation is updated.
 
 ---
 
-## Phase 4: RAG Pipeline Implementation
+## Current Repository Status
 
-### Status
-✅ **Completed**
+**Completed Phases:** 
+- Phase 1: Backend Foundation
+- Phase 2: Infrastructure
+- Phase 3: Database Layer
+- Phase 4: RAG Pipeline
+- Phase 5: LangGraph Multi-Agent Workflow
 
-### Architecture
-The Phase 4 RAG (Retrieval-Augmented Generation) pipeline employs a **dual-storage synchronization architecture**. 
-1. **Source of Truth**: Raw text and structured metadata are stored securely in PostgreSQL (`KnowledgeArticle` table).
-2. **Vector Index**: Document chunks are vectorized and indexed in ChromaDB for high-speed semantic search.
-3. **Data Protection**: Strict row-level multi-tenancy is enforced on *all* operations. Vector searches explicitly map a `tenant_id` metadata filter directly into the ChromaDB `where` clause, preventing cross-tenant data leaks at the database level.
-4. **Asynchrony**: Computationally heavy, blocking IO calls (like `vectorstore.add_documents`) are pushed to FastAPI's background threadpool (`fastapi.concurrency.run_in_threadpool`) so they do not block Uvicorn's async event loop.
+**Pending Phases:**
+**Pending Phases:**
+- Phase 6: Evaluation & Observability
+- Phase 7: FastAPI APIs
+- Phase 8: Frontend UI
+- Phase 9: Deployment
+- Phase 10: Documentation & Presentation Assets
 
-### Created Files
+**Current Capabilities:**
+- Full Multi-Tenant data isolation at the DB and Vector levels.
+- Configured PostgreSQL, Redis, and ChromaDB infrastructure running locally via Docker Compose.
+- Complete 15-table SQLAlchemy schema mapped and migrated via Alembic.
+- Robust RAG ingestion and retrieval utilizing `sentence-transformers`.
+- 7-Node LangGraph multi-agent orchestration capable of completely autonomous problem resolution, hallucination detection, and human-in-the-loop escalation.
+- Provider-agnostic LLM interfacing powered by Groq.
+
+**Infrastructure Status:**
+- `docker-compose.yml` configured and running perfectly locally.
+- Vector store (ChromaDB) and Relational DB (Postgres) successfully synchronized.
+
+---
+
+## Phase 1: Backend Foundation
+
+### Objective
+Establish the foundational FastAPI project structure, configuration management, and initial application skeleton.
+
+### Architecture Implemented
+- Standardized monolithic FastAPI structure (`app/api`, `app/core`, `app/models`, `app/services`).
+- Pydantic Settings-based centralized configuration management.
+- Custom structured JSON logging system utilizing `structlog`.
+
+### Files Created
+- `backend/app/main.py`
+- `backend/app/config.py`
+- `backend/app/core/logging.py`
+- `backend/app/core/exceptions.py`
+- `backend/app/core/middleware.py`
+
+### Files Modified
+- `backend/requirements.txt`
+- `backend/.env`
+
+### Dependencies Added
+- `fastapi`, `uvicorn`, `pydantic-settings`, `structlog`
+
+### Database Changes
+- None (Phase 1 was strictly API/Core foundation).
+
+### Docker Changes
+- Created the initial `backend/Dockerfile` using multi-stage builds.
+
+### Validation Performed
+- Started Uvicorn locally to verify health-check endpoints.
+- Validated `structlog` output format.
+
+### Results
+- Fast, secure, and easily extensible FastAPI foundation established.
+
+### Issues Encountered
+- Pydantic v2 strict list parsing issues with `CORS_ORIGINS` in `.env`.
+
+### Fixes Applied
+- Configured `CORS_ORIGINS` as a raw string and used a computed property `@property` to dynamically parse it, avoiding application crashes on boot.
+
+### Lessons Learned
+- Centralized custom error handlers (in `exceptions.py`) significantly streamline future API development.
+
+### Known Limitations
+- API routes are currently stubbed and return mocked data.
+
+### Git Commit Reference
+*Completed prior to formal tracking.*
+
+---
+
+## Phase 2: Infrastructure
+
+### Objective
+Set up the local Docker environment required to support the application's external dependencies.
+
+### Architecture Implemented
+- Local Docker Compose orchestrator defining networks and persistent volumes for microservices.
+
+### Files Created
+- `infra/docker-compose.yml`
+
+### Files Modified
+- `backend/.env` (Updated connection strings)
+
+### Dependencies Added
+- None
+
+### Database Changes
+- None
+
+### Docker Changes
+- Created configurations for `postgres:15-alpine`, `redis:7-alpine`, and `chromadb/chroma:latest`.
+
+### Validation Performed
+- Ran `docker compose up -d` and checked container health statuses.
+
+### Results
+- All infrastructure services booted correctly with persistent data volumes.
+
+### Issues Encountered
+- ChromaDB port conflicts with existing local services.
+
+### Fixes Applied
+- Mapped ChromaDB to port `8001` explicitly.
+
+### Lessons Learned
+- Pre-defining network bridges in docker-compose prevents microservice discovery issues later.
+
+### Known Limitations
+- The infrastructure is optimized for local development, not production orchestration (Kubernetes needed later).
+
+### Git Commit Reference
+*Completed prior to formal tracking.*
+
+---
+
+## Phase 3: Database Layer
+
+### Objective
+Design and implement the SQLAlchemy ORM models and Alembic migrations for a highly normalized, multi-tenant environment.
+
+### Architecture Implemented
+- Base mixins (`TenantMixin`, `TimestampMixin`, `UUIDPrimaryKeyMixin`) applied across the domain to ensure consistency.
+- 15 relational tables grouped by Domain (Tickets, Messages), Workflow (Runs, Executions), Governance (Approvals, Flags), and Knowledge.
+- Asynchronous DB sessions (`asyncpg`).
+
+### Files Created
+- `backend/alembic.ini`
+- `backend/alembic/env.py`
+- `backend/app/db/session.py`
+- `backend/app/db/base.py`
+- `backend/app/models/base.py`
+- `backend/app/models/ticket.py`, `user.py`, `conversation.py`, `message.py`, `evaluation.py`, `approval.py`, `quality.py`, `workflow.py`, `knowledge.py`
+
+### Files Modified
+- `backend/requirements.txt`
+
+### Dependencies Added
+- `sqlalchemy`, `alembic`, `asyncpg`, `psycopg2-binary`
+
+### Database Changes
+- Entire schema defined and staged for generation.
+
+### Docker Changes
+- None
+
+### Validation Performed
+- Verified SQLAlchemy model compilation and relationship integrity visually.
+
+### Results
+- A highly normalized schema prepared for complex AI workflow traceability.
+
+### Issues Encountered
+- Circular import dependencies between models when defining `relationship()`.
+
+### Fixes Applied
+- Used string-based relationship references (e.g., `"Ticket"`) and centralized the metadata registry in `db/base.py`.
+
+### Lessons Learned
+- Explicit string references in SQLAlchemy are critical in large projects to avoid import cycles.
+
+### Known Limitations
+- An Alembic schema bug prevented immediate migration (fixed in Phase 4).
+
+### Git Commit Reference
+*Completed prior to formal tracking.*
+
+---
+
+## Phase 4: RAG Pipeline
+
+### Objective
+Implement a production-ready, tenant-isolated Retrieval-Augmented Generation pipeline bridging PostgreSQL and ChromaDB.
+
+### Architecture Implemented
+- **Dual-Storage Synchronization**: Raw text and metadata in Postgres; vectorized chunks in ChromaDB.
+- **Data Protection**: Strict `tenant_id` filtering directly injected into ChromaDB `where` clauses.
+- **Asynchrony**: Heavy IO operations pushed to `fastapi.concurrency.run_in_threadpool`.
+
+### Files Created
 - `backend/app/rag/__init__.py`
 - `backend/app/rag/embeddings.py`
 - `backend/app/rag/chunkers.py`
@@ -37,33 +220,131 @@ The Phase 4 RAG (Retrieval-Augmented Generation) pipeline employs a **dual-stora
 - `backend/scripts/test_retrieval.py`
 - `backend/alembic/versions/98b47845b53a_initial_schema.py`
 
-### Modified Files
+### Files Modified
 - `backend/requirements.txt`
 - `backend/app/models/base.py`
 - `backend/.env`
 
 ### Dependencies Added
-- `chromadb>=0.4.24`
-- `sentence-transformers>=2.5.1`
-- `langchain>=0.1.13`
-- `langchain-community>=0.0.29`
-- `langchain-chroma>=0.1.0`
-- `langchain-huggingface>=0.0.1`
-- `langchain-text-splitters>=0.0.1`
-- `torch>=2.2.0`
+- `chromadb>=0.4.24`, `sentence-transformers>=2.5.1`, `langchain>=0.1.13`, `langchain-community>=0.0.29`, `langchain-chroma>=0.1.0`, `langchain-huggingface>=0.0.1`, `langchain-text-splitters>=0.0.1`, `torch>=2.2.0`
 
 ### Database Changes
-1. **Fixed a Critical Phase 3 Bug**: Modified `TenantMixin` in `app/models/base.py` to explicitly declare `ForeignKey("tenants.id", ondelete="CASCADE")`.
-2. **Schema Instantiation**: Regenerated the Alembic migration tree, creating the official migration `98b47845b53a`, which officially built out the Postgres schema.
+- Regenerated the Alembic migration tree, creating the official migration `98b47845b53a` to build out the schema.
 
-### Validation Results
-- **Seeding Test**: `seed_kb.py` successfully completed an atomic multi-commit transaction. Validated by extracting 5 rows from the Postgres `knowledge_articles` table and verifying a matching collection size of 5 in ChromaDB.
-- **Retrieval Test**: `test_retrieval.py` validated semantic relevance mapping. For the query *"What happens if my subscription payment fails?"*, the system successfully ranked the `Subscription Rules` document as the primary result with a Cosine Similarity/Confidence Score of `0.4472`, effectively filtering out irrelevant generic policies.
+### Docker Changes
+- None
+
+### Validation Performed
+- **Seeding Test**: `seed_kb.py` successfully completed atomic ingestion.
+- **Retrieval Test**: `test_retrieval.py` successfully executed tenant-isolated similarity searches and correctly ranked retrieved documents.
+
+### Results
+- System successfully isolates tenant data and returns highly relevant context via Cosine Similarity.
+
+### Issues Encountered
+- **Database Bug**: `TenantMixin` lacked a `ForeignKey` relationship to `tenants.id`, crashing the initial migration.
+- **Deprecation Warnings**: LangChain updated its HuggingFace embedding wrappers mid-development.
+
+### Fixes Applied
+- Added `ForeignKey("tenants.id")` to `TenantMixin`.
+- Transitioned to the modern `langchain_huggingface` package.
+
+### Lessons Learned
+- SQLAlchemy mixin Foreign Keys must be carefully defined to prevent join resolution failures.
 
 ### Known Limitations
-1. **CPU Emulation Penalty**: The HuggingFace `all-MiniLM-L6-v2` embedding model runs on CPU. While fast enough for test documents, ingesting large 100+ page PDFs will cause CPU spikes.
-2. **Hard-Deleted Chunk Synchronization**: Currently, if a chunk is manually deleted in Postgres outside of the `KnowledgeManager` application layer, ChromaDB won't be notified, leading to ghost vectors.
-3. **No Incremental Updates**: If an article changes, the current implementation doesn't intelligently re-vectorize *only* the changed chunks. It requires the old article to be deleted entirely, and the updated article to be fully re-ingested.
+- `all-MiniLM-L6-v2` embedding runs on CPU. Large ingestions will cause CPU spikes.
+- Hard-deleting chunks directly in Postgres causes "ghost vectors" in ChromaDB.
 
 ### Git Commit Reference
 *Pending user commit (`git commit -m "feat(rag): implement Phase 4 RAG pipeline..."`)*
+
+---
+
+## Phase 5: LangGraph Multi-Agent Workflow
+
+### Objective
+Build the autonomous support agent orchestration layer using LangGraph and Groq.
+
+### Architecture Implemented
+- **StateGraph Machine**: 7-node sequential execution flow (`classifier → retriever → sentiment → resolution → response_writer → hallucination_checker → human_approval`).
+- **Provider-Agnostic LLM**: Centralized factory utilizing `langchain-groq` and `llama-3.3-70b-versatile`.
+- **Conditional Edges**: Dynamic routing based on calculated Hallucination/Confidence scores.
+
+### Files Created
+- `backend/app/agents/state.py` (Typed `SupportState`)
+- `backend/app/agents/llm.py`
+- `backend/app/agents/graph.py`
+- `backend/app/agents/nodes/classifier.py`
+- `backend/app/agents/nodes/retriever.py`
+- `backend/app/agents/nodes/sentiment.py`
+- `backend/app/agents/nodes/resolution.py`
+- `backend/app/agents/nodes/response_writer.py`
+- `backend/app/agents/nodes/hallucination.py`
+- `backend/app/agents/nodes/human_approval.py`
+- `backend/app/agents/prompts/templates.py`
+- `backend/app/services/workflow_service.py`
+- `backend/scripts/test_workflow.py`
+
+### Files Modified
+- `backend/requirements.txt`
+- `backend/app/config.py`
+- `backend/.env`
+- `backend/app/agents/__init__.py`
+- `backend/app/agents/nodes/__init__.py`
+
+### Dependencies Added
+- `langgraph>=0.0.28`, `langchain-groq>=0.1.0`
+
+### Database Changes
+- None (Utilized existing Phase 3 schema models).
+
+### Docker Changes
+- None
+
+### Validation Performed
+- Compiled LangGraph and verified Node connections.
+- Executed `scripts/test_workflow.py` through 3 end-to-end customer scenarios.
+
+### Results
+- The agent correctly retrieved knowledge, formatted responses, detected ungrounded hallucinated claims, and dynamically escalated to human review when required.
+
+### Issues Encountered
+- **JSON Decoding Errors**: Groq models frequently wrapped requested JSON responses inside Markdown code blocks (e.g., ` ```json `), causing python `json.loads` to crash.
+
+### Fixes Applied
+- Implemented a centralized `parse_json_response` helper in `llm.py` that strips all markdown syntax dynamically before attempting to deserialize.
+
+### Lessons Learned
+- Always sanitize raw string outputs from LLMs before strict validation, regardless of the prompt instructions.
+
+### Known Limitations
+- Workflow operates sequentially (5-10s latency). Future optimization could parallelize Classifier and Sentiment nodes.
+- Execution tracking is prepared but not yet physically persisted to Postgres (Requires Phase 6 API integration).
+
+### Git Commit Reference
+*Pending user commit (`git commit -m "feat(agents): implement Phase 5 LangGraph multi-agent workflow with Groq"`)*
+
+---
+
+## Phase 6 Planning
+
+### Objectives
+Integrate the LangGraph multi-agent workflow into the FastAPI HTTP layer. Implement background task execution for heavy workloads, and persist all `WorkflowRun` telemetry into the database.
+
+### Expected Architecture
+- **API Controllers**: FastAPI routers that expose endpoints to initiate ticket resolution workflows.
+- **Asynchronous Workers**: Integration with Celery/Redis to shift LangGraph execution out of the synchronous HTTP request-response cycle.
+- **Telemetry Persistence**: Extending `WorkflowService` to officially write `WorkflowNodeExecution` metrics (latency, token costs) and `ApprovalRequests` to PostgreSQL.
+
+### Expected Files
+- `backend/app/api/v1/tickets.py` (Update stubs)
+- `backend/app/api/v1/agents.py` (Update stubs)
+- `backend/app/worker.py` (Celery initialization)
+- `backend/app/services/workflow_service.py` (Enhancement)
+
+### Integration Points
+- Frontend HTTP Clients -> FastAPI Endpoints
+- FastAPI -> Celery Broker (Redis)
+- Celery Worker -> LangGraph Workflow (`app/agents/graph.py`)
+- LangGraph Workflow -> PostgreSQL (Traceability storage)
