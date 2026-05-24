@@ -32,6 +32,11 @@ output "health_check_url" {
   value       = "http://${aws_eip.supportops.public_ip}:8000/health"
 }
 
+output "jenkins_url" {
+  description = "Jenkins Web UI URL"
+  value       = "http://${aws_eip.supportops.public_ip}:8082"
+}
+
 output "security_group_id" {
   description = "Security group ID"
   value       = aws_security_group.supportops.id

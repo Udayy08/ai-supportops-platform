@@ -99,6 +99,15 @@ resource "aws_security_group" "supportops" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Jenkins
+  ingress {
+    description = "Jenkins Web UI"
+    from_port   = 8082
+    to_port     = 8082
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # All outbound
   egress {
     from_port   = 0
@@ -168,7 +177,36 @@ resource "aws_instance" "supportops" {
     systemctl enable docker
     systemctl start docker
 
-    echo "✅ EC2 bootstrap complete" >> /home/ubuntu/setup.log
+    # ── Install Jenkins ────────────────────────────────────────────────────
+    apt-get install -y fontconfig openjdk-17-jre
+
+    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | \
+      tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+      https://pkg.jenkins.io/debian-stable binary/" | \
+      tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+    apt-get update -y
+    apt-get install -y jenkins
+
+    # Change Jenkins to run on port 8082 (8080 is used by Nginx)
+    sed -i 's/HTTP_PORT=8080/HTTP_PORT=8082/' /etc/default/jenkins || true
+    sed -i 's/--httpPort=8080/--httpPort=8082/' /usr/lib/systemd/system/jenkins.service || true
+    mkdir -p /etc/systemd/system/jenkins.service.d
+    cat > /etc/systemd/system/jenkins.service.d/override.conf << 'JENKINS_OVERRIDE'
+[Service]
+Environment="JENKINS_PORT=8082"
+JENKINS_OVERRIDE
+
+    # Add jenkins user to docker group (so Jenkins can run docker commands)
+    usermod -aG docker jenkins
+
+    systemctl daemon-reload
+    systemctl enable jenkins
+    systemctl start jenkins
+
+    echo "✅ EC2 bootstrap complete (Docker + Jenkins)" >> /home/ubuntu/setup.log
   EOF
 
   tags = {
