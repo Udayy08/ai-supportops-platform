@@ -23,6 +23,7 @@ class KnowledgeArticleUpdateRequest(BaseModel):
     is_active: bool | None = None
     metadata: dict[str, Any] | None = None
 
+from pydantic import BaseModel, Field, model_validator
 
 class KnowledgeArticleResponse(BaseModel):
     id: uuid.UUID
@@ -35,6 +36,27 @@ class KnowledgeArticleResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+    @model_validator(mode='before')
+    @classmethod
+    def map_metadata(cls, data: Any) -> Any:
+        # If it's an ORM model, grab metadata_
+        if hasattr(data, 'metadata_'):
+            # Some sqlalchemy models might be passed as dicts or objects
+            # Return a dict for Pydantic v2 to validate
+            return {
+                'id': data.id,
+                'tenant_id': data.tenant_id,
+                'title': data.title,
+                'content': data.content,
+                'category': data.category,
+                'metadata': data.metadata_,
+                'chroma_collection': data.chroma_collection,
+                'is_active': data.is_active,
+                'created_at': data.created_at,
+                'updated_at': data.updated_at,
+            }
+        return data
 
     model_config = {"from_attributes": True}
 

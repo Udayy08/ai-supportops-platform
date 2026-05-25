@@ -57,9 +57,25 @@ def build_support_graph() -> StateGraph:
     graph.add_node("auto_resolve", _auto_resolve_node)
 
     # ── Wire edges ───────────────────────────────────────────────────────────
+    def _route_after_retriever(state: SupportState) -> str:
+        """Route to sentiment (normal flow) or human_approval (escalated)."""
+        if state.get("confidence_decision") == "escalated":
+            return "human_approval"
+        return "sentiment"
+
     graph.set_entry_point("classifier")
     graph.add_edge("classifier", "retriever")
-    graph.add_edge("retriever", "sentiment")
+    
+    # Conditional routing after retriever
+    graph.add_conditional_edges(
+        "retriever",
+        _route_after_retriever,
+        {
+            "sentiment": "sentiment",
+            "human_approval": "human_approval",
+        },
+    )
+    
     graph.add_edge("sentiment", "resolution")
     graph.add_edge("resolution", "response_writer")
     graph.add_edge("response_writer", "hallucination_checker")

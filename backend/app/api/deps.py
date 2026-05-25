@@ -3,7 +3,7 @@ Shared FastAPI dependencies — injected into route handlers via Depends().
 
 Provides:
 - get_db: Database session per request
-- get_current_user: Authenticated user from JWT
+- get_current_user: Authenticated user from JWT (or X-Mock-Auth in development)
 - require_role: RBAC role guard factory
 - get_redis: Redis client from app state
 - PaginationParams: Standard pagination query params
@@ -32,14 +32,71 @@ DBSession = Annotated[AsyncSession, Depends(get_db)]
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
+async def _resolve_mock_user(db: AsyncSession) -> User:
+    """
+    Development-only: fetch the first active user from the DB, or create a
+    demo tenant + admin user if the database is empty.
+
+    This mirrors the dependency override used in test_fastapi.py so that the
+    frontend X-Mock-Auth header works without a real JWT token.
+    """
+    from sqlalchemy.future import select
+    from app.models.tenant import Tenant
+
+    result = await db.execute(select(User).where(User.is_active == True).limit(1))
+    user = result.scalar_one_or_none()
+    if user:
+        return user
+
+    # No users exist — seed a demo tenant + admin so the UI is usable immediately
+    result = await db.execute(select(Tenant).limit(1))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        tenant = Tenant(
+            id=uuid.uuid4(),
+            name="Demo Corp",
+            slug="demo-tenant",
+            settings={},
+        )
+        db.add(tenant)
+        await db.flush()
+
+    user = User(
+        id=uuid.uuid4(),
+        tenant_id=tenant.id,
+        email="test@example.com",
+        full_name="Test User",
+        role=UserRole.ADMIN,
+        is_active=True,
+        hashed_password="mock",
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
 async def get_current_user(
     db: DBSession,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    x_mock_auth: str | None = Header(default=None),
 ) -> User:
     """
-    Decode the Bearer token, fetch the user from the database.
-    Raises UnauthorizedException if token is missing, invalid, or user not found.
+    Resolve the authenticated user.
+
+    In development (ENVIRONMENT=development):
+      - If the request carries X-Mock-Auth: true, skip JWT validation and
+        return the first active user from the DB (auto-creating a demo user
+        if none exists).  This is the same strategy used by test_fastapi.py.
+
+    In all environments:
+      - Decode the Bearer JWT, validate it, and fetch the user from the DB.
     """
+    # ── Development mock bypass ────────────────────────────────────────────────
+    if settings.is_development and x_mock_auth == "true":
+        return await _resolve_mock_user(db)
+
+    # ── Normal JWT path ────────────────────────────────────────────────────────
     if credentials is None:
         raise UnauthorizedException(detail="Authentication credentials not provided.")
 

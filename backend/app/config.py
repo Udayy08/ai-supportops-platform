@@ -112,6 +112,7 @@ class Settings(BaseSettings):
 
     # ── Agent Workflow ────────────────────────────────────────────────────────
     agent_confidence_threshold: float = 0.7
+    retrieval_confidence_threshold: float = -6.0
     agent_max_retries: int = 2
 
     # ── LangSmith ────────────────────────────────────────────────────────────

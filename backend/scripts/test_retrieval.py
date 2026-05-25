@@ -26,10 +26,10 @@ def test_retrieval():
     retriever = TenantRetriever()
 
     queries = [
-        "What happens if I receive a defective product?",
-        "How long does international shipping take?",
-        "I want to cancel my order that I placed 2 hours ago.",
-        "What happens if my subscription payment fails?",
+        "How long do credit card refunds take?",
+        "How many full refunds can a customer receive within a 12-month period?",
+        "How do I reset my password?",
+        "What are the shipping delivery timelines?",
     ]
 
     for q in queries:
@@ -40,7 +40,7 @@ def test_retrieval():
         context, citations = retriever.get_context_and_citations(
             query=q, 
             tenant_id=tenant_id, 
-            top_k=2
+            top_k=3
         )
         
         print("\n[Citations]")
