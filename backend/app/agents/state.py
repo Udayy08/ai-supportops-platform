@@ -35,7 +35,9 @@ class SupportState(TypedDict, total=False):
     retrieved_context: str
     citations: list[dict[str, Any]]
     retrieval_confidence: float
+    confidence_decision: str
     num_sources_found: int
+    retrieval_debug: dict[str, Any]
 
     # ── Sentiment & Risk Agent ───────────────────────────────────────────────
     sentiment: str              # positive, neutral, frustrated, angry

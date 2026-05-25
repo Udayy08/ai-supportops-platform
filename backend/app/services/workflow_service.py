@@ -58,7 +58,13 @@ class WorkflowService:
 
         try:
             with get_tracer_context() as cb:
-                result = self.graph.invoke(initial_state)
+                latest_state = dict(initial_state)
+                # Stream to capture intermediate states
+                for step in self.graph.stream(initial_state):
+                    for key, val in step.items():
+                        latest_state.update(val)
+                
+                result = latest_state
                 
                 # Extract LangSmith details if tracing is enabled
                 if cb and cb.latest_run:
@@ -85,12 +91,22 @@ class WorkflowService:
             import traceback
             traceback.print_exc()
             elapsed_ms = int((time.time() - start_time) * 1000)
-            return {
-                **initial_state,
-                "error": str(e),
-                "total_latency_ms": elapsed_ms,
-                "final_disposition": "failed",
-            }
+            
+            # Use the latest state we accumulated, so downstream failures don't erase upstream successes
+            result = locals().get("latest_state", dict(initial_state))
+            
+            error_str = str(e).lower()
+            if "429" in error_str or "rate limit" in error_str:
+                result["failure_type"] = "rate_limit"
+                result["provider"] = "groq"
+                result["retry_attempts"] = 3  # The max attempts configured in llm.py
+            else:
+                result["failure_type"] = "execution_error"
+                
+            result["error"] = str(e)
+            result["total_latency_ms"] = elapsed_ms
+            result["final_disposition"] = "failed"
+            return result
 
     async def run_async(
         self,
@@ -103,10 +119,51 @@ class WorkflowService:
         Execute the full agent workflow asynchronously using a background thread.
         This prevents blocking the main FastAPI event loop.
         """
-        return await asyncio.to_thread(
+        initial_state = {
+            "ticket_id": ticket_id or str(uuid.uuid4()),
+            "tenant_id": tenant_id,
+            "customer_message": customer_message,
+            "customer_name": customer_name,
+        }
+
+        run_record = None
+        if self.session and ticket_id:
+            run_record = WorkflowRun(
+                id=uuid.uuid4(),
+                tenant_id=uuid.UUID(tenant_id),
+                ticket_id=uuid.UUID(ticket_id),
+                status=WorkflowRunStatus.RUNNING,
+                input_state=dict(initial_state),
+                started_at=datetime.now(timezone.utc)
+            )
+            self.session.add(run_record)
+            await self.session.commit()
+            
+        result = await asyncio.to_thread(
             self.run_sync,
             tenant_id=tenant_id,
             customer_message=customer_message,
             ticket_id=ticket_id,
             customer_name=customer_name,
         )
+
+        if self.session and run_record:
+            disposition = result.get("final_disposition")
+            if disposition == "auto_resolved":
+                status = WorkflowRunStatus.COMPLETED
+            elif disposition == "escalated":
+                status = WorkflowRunStatus.ESCALATED
+            else:
+                status = WorkflowRunStatus.FAILED
+                
+            run_record.status = status
+            run_record.output_state = dict(result)
+            run_record.nodes_visited = result.get("nodes_visited", [])
+            run_record.final_response = result.get("proposed_response")
+            run_record.total_latency_ms = result.get("total_latency_ms")
+            run_record.error_message = result.get("error")
+            run_record.completed_at = datetime.now(timezone.utc)
+            
+            await self.session.commit()
+
+        return result

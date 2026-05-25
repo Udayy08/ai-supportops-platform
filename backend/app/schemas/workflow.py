@@ -10,12 +10,17 @@ from pydantic import BaseModel
 
 class WorkflowTraceResponse(BaseModel):
     id: uuid.UUID
-    langsmith_run_id: str | None
-    langsmith_run_url: str | None
-    total_latency_ms: int
-    tokens_used: int
+    ticket_id: uuid.UUID
+    status: str
     nodes_visited: list[str]
+    total_latency_ms: int | None
     created_at: datetime
+    
+    # Detailed fields
+    input_state: dict[str, Any]
+    output_state: dict[str, Any]
+    final_response: str | None
+    error_message: str | None
 
     model_config = {"from_attributes": True}
 

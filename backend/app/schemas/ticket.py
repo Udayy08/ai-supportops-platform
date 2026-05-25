@@ -44,6 +44,7 @@ class HumanReviewRequest(BaseModel):
     ticket_id: uuid.UUID
     approval_decision: ApprovalDecision
     agent_override_notes: str | None = None
+    edited_response: str | None = None
 
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
