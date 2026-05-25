@@ -1,0 +1,9 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI SupportOps — Kubernetes Namespace
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: supportops
+  labels:
+    app.kubernetes.io/part-of: ai-supportops

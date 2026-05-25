@@ -1,0 +1,133 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI SupportOps — Kubernetes ConfigMaps
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── App Configuration ─────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: supportops
+  labels:
+    app.kubernetes.io/part-of: ai-supportops
+data:
+  # App
+  APP_NAME: "AI SupportOps"
+  APP_VERSION: "0.1.0"
+  ENVIRONMENT: "production"              # Disables Swagger/docs automatically
+  DEBUG: "false"
+
+  # API
+  API_V1_PREFIX: "/api/v1"
+  # Add your Vercel frontend domain here for CORS
+  BACKEND_CORS_ORIGINS: "https://your-app.vercel.app,http://localhost:3000"
+  ALLOWED_HOSTS: "localhost,127.0.0.1"
+
+  # Database — K8s service DNS names
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "supportops"
+  POSTGRES_USER: "supportops"
+
+  # Redis
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_PASSWORD: ""
+
+  # ChromaDB
+  CHROMA_HOST: "chromadb"
+  CHROMA_PORT: "8000"
+  CHROMA_COLLECTION_NAME: "supportops_kb"
+
+  # LLM
+  GROQ_DEFAULT_MODEL: "llama-3.3-70b-versatile"
+  GROQ_FAST_MODEL: "llama-3.1-8b-instant"
+
+  # Agent
+  AGENT_CONFIDENCE_THRESHOLD: "0.7"
+  AGENT_MAX_RETRIES: "2"
+
+  # LangSmith
+  LANGCHAIN_TRACING_V2: "false"
+  LANGCHAIN_ENDPOINT: "https://api.smith.langchain.com"
+  LANGCHAIN_PROJECT: "ai-supportops"
+
+  # Evaluation
+  ENABLE_RAGAS: "true"
+  EVALUATION_SAMPLE_PERCENTAGE: "10"
+
+  # Rate Limiting
+  RATE_LIMIT_PER_MINUTE: "100"
+
+  # Sentry
+  SENTRY_TRACES_SAMPLE_RATE: "0.1"
+
+  # Pagination
+  DEFAULT_PAGE_SIZE: "20"
+  MAX_PAGE_SIZE: "100"
+
+---
+# ── Nginx Configuration ──────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: supportops
+  labels:
+    app.kubernetes.io/part-of: ai-supportops
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+
+        # ── Backend API ──────────────────────────────────────────────────────
+        location /api/ {
+            proxy_pass         http://backend:8000;
+            proxy_http_version 1.1;
+            proxy_set_header   Upgrade $http_upgrade;
+            proxy_set_header   Connection "upgrade";
+            proxy_set_header   Host $host;
+            proxy_set_header   X-Real-IP $remote_addr;
+            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header   X-Forwarded-Proto $scheme;
+            proxy_read_timeout 300s;
+            proxy_connect_timeout 75s;
+        }
+
+        # ── Health check ─────────────────────────────────────────────────────
+        location /health {
+            proxy_pass http://backend:8000/health;
+        }
+
+        # ── WebSocket upgrade ────────────────────────────────────────────────
+        location /ws/ {
+            proxy_pass         http://backend:8000;
+            proxy_http_version 1.1;
+            proxy_set_header   Upgrade $http_upgrade;
+            proxy_set_header   Connection "Upgrade";
+            proxy_set_header   Host $host;
+        }
+    }
+
+---
+# ── PostgreSQL Init SQL ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: supportops
+  labels:
+    app.kubernetes.io/part-of: ai-supportops
+data:
+  init.sql: |
+    -- PostgreSQL initialization script
+    -- Runs once when the postgres container is first created.
+
+    -- Enable UUID extension
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- For full-text trigram search
+
+    -- Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE supportops TO supportops;

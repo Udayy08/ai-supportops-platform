@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI SupportOps — Backend (Kubernetes)
+# Image built locally on EC2 and imported into k3s
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: supportops
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: ai-supportops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: supportops-backend:latest    # Built locally, imported via k3s ctr
+          imagePullPolicy: Never              # Use local image, don't pull from registry
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+---
+# ── Service ───────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: supportops
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: ai-supportops
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000

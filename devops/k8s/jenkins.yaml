@@ -1,0 +1,178 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI SupportOps — Jenkins (Kubernetes)
+#
+# ⚠️  SECURITY: Jenkins is a ClusterIP service — NOT exposed to the internet.
+# Access via SSH tunnel only:
+#   ssh -i ~/.ssh/<key>.pem -L 8082:localhost:30082 ubuntu@<ELASTIC_IP>
+#   Then open http://localhost:8082 in your browser.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── ServiceAccount + RBAC ─────────────────────────────────────────────────────
+# Jenkins needs kubectl access to deploy workloads in the cluster
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins
+  namespace: supportops
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/part-of: ai-supportops
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jenkins-admin
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/part-of: ai-supportops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: jenkins
+    namespace: supportops
+
+---
+# ── PersistentVolumeClaim ─────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-home
+  namespace: supportops
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/part-of: ai-supportops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# ── Deployment ────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: supportops
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/part-of: ai-supportops
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate                          # Jenkins can't run 2 instances
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      serviceAccountName: jenkins
+      securityContext:
+        fsGroup: 1000                       # Jenkins GID
+      initContainers:
+        # Install Docker CLI + kubectl inside Jenkins so it can build & deploy
+        - name: install-tools
+          image: jenkins/jenkins:lts-jdk17
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              # Install Docker CLI
+              apt-get update && apt-get install -y curl
+              curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-25.0.5.tgz | \
+                tar xz -C /tmp && \
+                cp /tmp/docker/docker /tools/docker
+
+              # Install kubectl
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+                chmod +x kubectl && \
+                cp kubectl /tools/kubectl
+          volumeMounts:
+            - name: tools
+              mountPath: /tools
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:lts-jdk17
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: jnlp
+              containerPort: 50000
+          env:
+            - name: JAVA_OPTS
+              value: "-Xmx512m -Xms256m"
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+            - name: tools
+              mountPath: /usr/local/bin/docker
+              subPath: docker
+            - name: tools
+              mountPath: /usr/local/bin/kubectl
+              subPath: kubectl
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: jenkins-home
+        - name: tools
+          emptyDir: {}
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+
+---
+# ── Service (ClusterIP — NOT externally accessible) ───────────────────────────
+# Jenkins is only accessible via SSH tunnel for security.
+# A NodePort (30082) is used internally so the SSH tunnel can reach it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
+  namespace: supportops
+  labels:
+    app.kubernetes.io/name: jenkins
+    app.kubernetes.io/part-of: ai-supportops
+spec:
+  type: NodePort
+  selector:
+    app: jenkins
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30082             # Accessible via SSH tunnel only (SG blocks this port)
+    - name: jnlp
+      port: 50000
+      targetPort: 50000
