@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # AI SupportOps — Terraform Configuration
-# Simple EC2 + Elastic IP deployment
+# EC2 + Elastic IP + k3s (Lightweight Kubernetes)
 # ─────────────────────────────────────────────────────────────────────────────
 
 terraform {
@@ -90,7 +90,7 @@ resource "aws_security_group" "supportops" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Nginx proxy
+  # Nginx proxy (legacy docker-compose port)
   ingress {
     description = "Nginx Proxy"
     from_port   = 8080
@@ -99,14 +99,27 @@ resource "aws_security_group" "supportops" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Jenkins
+  # K8s NodePort — Nginx (app entry point via Kubernetes)
   ingress {
-    description = "Jenkins Web UI"
-    from_port   = 8082
-    to_port     = 8082
+    description = "K8s Nginx NodePort"
+    from_port   = 30080
+    to_port     = 30080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  # K8s API server — restricted to SSH-allowed IPs only
+  ingress {
+    description = "K8s API (restricted)"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = var.ssh_allowed_cidr
+  }
+
+  # NOTE: Jenkins (port 8082) is intentionally NOT exposed.
+  # Jenkins runs as a K8s ClusterIP service, accessible only via SSH tunnel:
+  #   ssh -L 8082:localhost:30082 ubuntu@<ELASTIC_IP>
 
   # All outbound
   egress {
@@ -177,36 +190,38 @@ resource "aws_instance" "supportops" {
     systemctl enable docker
     systemctl start docker
 
-    # ── Install Jenkins ────────────────────────────────────────────────────
-    apt-get install -y fontconfig openjdk-17-jre
+    # ── Install k3s (Lightweight Kubernetes) ───────────────────────────────
+    # k3s includes: kubectl, containerd, CoreDNS, Traefik, local-path-provisioner
+    # Using Docker as the container runtime since we already have it installed
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--docker" sh -
 
-    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | \
-      tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+    # ── Wait for k3s to be ready ───────────────────────────────────────────
+    echo "⏳ Waiting for k3s to be ready..."
+    for i in $(seq 1 60); do
+        if kubectl get nodes 2>/dev/null | grep -q " Ready"; then
+            echo "✅ k3s is ready!"
+            break
+        fi
+        if [ $i -eq 60 ]; then
+            echo "❌ k3s did not become ready in time"
+            exit 1
+        fi
+        sleep 5
+    done
 
-    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-      https://pkg.jenkins.io/debian-stable binary/" | \
-      tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+    # ── Configure kubectl for ubuntu user ──────────────────────────────────
+    mkdir -p /home/ubuntu/.kube
+    cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+    chown -R ubuntu:ubuntu /home/ubuntu/.kube
+    chmod 600 /home/ubuntu/.kube/config
 
-    apt-get update -y
-    apt-get install -y jenkins
+    # Allow ubuntu user to use kubectl without sudo
+    echo 'export KUBECONFIG=/home/ubuntu/.kube/config' >> /home/ubuntu/.bashrc
 
-    # Change Jenkins to run on port 8082 (8080 is used by Nginx)
-    sed -i 's/HTTP_PORT=8080/HTTP_PORT=8082/' /etc/default/jenkins || true
-    sed -i 's/--httpPort=8080/--httpPort=8082/' /usr/lib/systemd/system/jenkins.service || true
-    mkdir -p /etc/systemd/system/jenkins.service.d
-    cat > /etc/systemd/system/jenkins.service.d/override.conf << 'JENKINS_OVERRIDE'
-[Service]
-Environment="JENKINS_PORT=8082"
-JENKINS_OVERRIDE
+    # ── Create K8s namespace ───────────────────────────────────────────────
+    kubectl create namespace supportops || true
 
-    # Add jenkins user to docker group (so Jenkins can run docker commands)
-    usermod -aG docker jenkins
-
-    systemctl daemon-reload
-    systemctl enable jenkins
-    systemctl start jenkins
-
-    echo "✅ EC2 bootstrap complete (Docker + Jenkins)" >> /home/ubuntu/setup.log
+    echo "✅ EC2 bootstrap complete (Docker + k3s)" >> /home/ubuntu/setup.log
   EOF
 
   tags = {

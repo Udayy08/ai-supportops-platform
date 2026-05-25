@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // AI SupportOps — Jenkins CI/CD Pipeline
-// Triggers on GitHub push → Lint → Test → Deploy to EC2
+// Runs inside Kubernetes (k3s) — builds, tests, and deploys via kubectl
 // ─────────────────────────────────────────────────────────────────────────────
 
 pipeline {
@@ -9,14 +9,10 @@ pipeline {
     // ── Environment Variables ────────────────────────────────────────────────
     environment {
         APP_NAME        = 'ai-supportops'
-        DEPLOY_USER     = 'ubuntu'
+        KUBE_NAMESPACE  = 'supportops'
+        IMAGE_NAME      = 'supportops-backend'
+        IMAGE_TAG       = "${BUILD_NUMBER}"
         DEPLOY_DIR      = '/home/ubuntu/app'
-        DOCKER_COMPOSE  = 'docker compose -f infra/docker-compose.yml'
-        // These come from Jenkins Credentials:
-        //   - EC2_HOST          : Elastic IP of your EC2 instance
-        //   - EC2_SSH_KEY       : SSH private key (Jenkins SSH credential ID)
-        //   - GROQ_API_KEY      : Groq API key for the app
-        //   - DB_PASSWORD       : PostgreSQL password
     }
 
     // ── Triggers ─────────────────────────────────────────────────────────────
@@ -84,7 +80,29 @@ pipeline {
             }
         }
 
-        // ── Stage 4: Deploy to EC2 ──────────────────────────────────────────
+        // ── Stage 4: Build Docker Image ──────────────────────────────────────
+        stage('Build') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
+            }
+            steps {
+                echo '🐳 Building Docker image...'
+                sh """
+                    cd backend
+                    docker build \
+                        --target production \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        -t ${IMAGE_NAME}:latest \
+                        .
+                """
+                echo "✅ Image built: ${IMAGE_NAME}:${IMAGE_TAG}"
+            }
+        }
+
+        // ── Stage 5: Deploy to Kubernetes ────────────────────────────────────
         stage('Deploy') {
             when {
                 anyOf {
@@ -93,84 +111,47 @@ pipeline {
                 }
             }
             steps {
-                echo '🚀 Deploying to EC2...'
-                withCredentials([
-                    string(credentialsId: 'EC2_HOST', variable: 'EC2_HOST'),
-                    sshUserPrivateKey(
-                        credentialsId: 'EC2_SSH_KEY',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
-                    )
-                ]) {
-                    sh '''
-                        chmod 600 "$SSH_KEY"
+                echo '🚀 Deploying to Kubernetes...'
+                sh """
+                    echo "══════════════════════════════════════════════"
+                    echo "  AI SupportOps — K8s Deployment Started"
+                    echo "══════════════════════════════════════════════"
 
-                        # SSH options to skip host key checking
-                        SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+                    # ── Apply K8s manifests (idempotent) ──────────────
+                    echo "📦 Applying K8s manifests..."
+                    kubectl apply -f devops/k8s/namespace.yaml
+                    kubectl apply -f devops/k8s/configmap.yaml
+                    kubectl apply -f devops/k8s/postgres.yaml
+                    kubectl apply -f devops/k8s/redis.yaml
+                    kubectl apply -f devops/k8s/chromadb.yaml
+                    kubectl apply -f devops/k8s/nginx.yaml
+                    kubectl apply -f devops/k8s/backend.yaml
+                    kubectl apply -f devops/k8s/jenkins.yaml
 
-                        # Deploy script executed on the remote EC2 instance
-                        ssh $SSH_OPTS -i "$SSH_KEY" ${DEPLOY_USER}@${EC2_HOST} << 'DEPLOY_SCRIPT'
-                            set -e
+                    # ── Update backend image ──────────────────────────
+                    echo "🔄 Updating backend image to ${IMAGE_NAME}:${IMAGE_TAG}..."
+                    kubectl set image deployment/backend \
+                        backend=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n ${KUBE_NAMESPACE}
 
-                            echo "══════════════════════════════════════════════"
-                            echo "  AI SupportOps — Deployment Started"
-                            echo "══════════════════════════════════════════════"
+                    # ── Wait for rollout ──────────────────────────────
+                    echo "⏳ Waiting for rollout to complete..."
+                    kubectl rollout status deployment/backend \
+                        -n ${KUBE_NAMESPACE} \
+                        --timeout=300s
 
-                            APP_DIR="/home/ubuntu/app"
-                            REPO_URL="https://github.com/${GIT_URL##*/}"
+                    # ── Verify all pods are running ───────────────────
+                    echo "🔍 Checking pod status..."
+                    kubectl get pods -n ${KUBE_NAMESPACE}
 
-                            # ── Clone or pull latest code ──────────────────
-                            if [ ! -d "$APP_DIR/.git" ]; then
-                                echo "📦 First deploy — cloning repository..."
-                                git clone ${GIT_URL} $APP_DIR
-                            else
-                                echo "🔄 Pulling latest changes..."
-                                cd $APP_DIR
-                                git fetch --all
-                                git reset --hard origin/main || git reset --hard origin/master
-                            fi
+                    # ── Cleanup old Docker images ─────────────────────
+                    echo "🧹 Cleaning up old images..."
+                    docker image prune -f
 
-                            cd $APP_DIR
-
-                            # ── Create .env if it doesn't exist ────────────
-                            if [ ! -f backend/.env ]; then
-                                echo "⚙️  Creating .env from .env.example..."
-                                cp backend/.env.example backend/.env
-                                echo "⚠️  IMPORTANT: Edit backend/.env with real values!"
-                            fi
-
-                            # ── Build and deploy with Docker Compose ───────
-                            echo "🐳 Building and starting containers..."
-                            docker compose -f infra/docker-compose.yml down --remove-orphans || true
-                            docker compose -f infra/docker-compose.yml up --build -d
-
-                            # ── Wait for health check ──────────────────────
-                            echo "⏳ Waiting for app to be healthy..."
-                            for i in $(seq 1 30); do
-                                if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-                                    echo "✅ App is healthy!"
-                                    break
-                                fi
-                                if [ $i -eq 30 ]; then
-                                    echo "❌ Health check failed after 30 attempts"
-                                    docker compose -f infra/docker-compose.yml logs --tail=50 backend
-                                    exit 1
-                                fi
-                                echo "  Attempt $i/30 — waiting..."
-                                sleep 5
-                            done
-
-                            # ── Cleanup old Docker images ──────────────────
-                            echo "🧹 Cleaning up old images..."
-                            docker image prune -f
-
-                            echo "══════════════════════════════════════════════"
-                            echo "  ✅ Deployment Complete!"
-                            echo "══════════════════════════════════════════════"
-DEPLOY_SCRIPT
-                    '''
-                }
-                echo '✅ Deployed successfully to EC2'
+                    echo "══════════════════════════════════════════════"
+                    echo "  ✅ K8s Deployment Complete!"
+                    echo "══════════════════════════════════════════════"
+                """
             }
         }
     }
