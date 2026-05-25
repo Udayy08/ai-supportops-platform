@@ -1,0 +1,652 @@
+[
+  {
+    "query": "How long do credit card refunds take?",
+    "type": "exact",
+    "expected": "refund_policy.pdf",
+    "actual_top": "premium_gold_policy.md",
+    "actual_top3": [
+      "premium_gold_policy.md",
+      "refund_policy.pdf",
+      "faq.md"
+    ],
+    "top1_match": false,
+    "top3_match": true,
+    "similarity_scores": [
+      0.5577,
+      0.4469,
+      0.3757
+    ],
+    "avg_similarity": 0.46009999999999995,
+    "latency_ms": 8688,
+    "hallucination_score": 0.5,
+    "disposition": "escalated"
+  },
+  {
+    "query": "When will I get my money back on my Visa?",
+    "type": "semantic",
+    "expected": "refund_policy.pdf",
+    "actual_top": "premium_gold_policy.md",
+    "actual_top3": [
+      "premium_gold_policy.md",
+      "faq.md",
+      "refund_policy.pdf"
+    ],
+    "top1_match": false,
+    "top3_match": true,
+    "similarity_scores": [
+      0.3242,
+      0.2997,
+      0.2924
+    ],
+    "avg_similarity": 0.30543333333333333,
+    "latency_ms": 74,
+    "hallucination_score": 0.5,
+    "disposition": "escalated"
+  },
+  {
+    "query": "Do you offer store credit for returns?",
+    "type": "exact",
+    "expected": "refund_policy.pdf",
+    "actual_top": "refund_policy.pdf",
+    "actual_top3": [
+      "refund_policy.pdf",
+      "refund_policy.pdf",
+      "refund_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.389,
+      0.3278,
+      0.2887
+    ],
+    "avg_similarity": 0.33516666666666667,
+    "latency_ms": 118,
+    "hallucination_score": 0.2,
+    "disposition": "auto_resolved"
+  },
+  {
+    "query": "My item arrived broken, what do I do?",
+    "type": "ambiguous",
+    "expected": "refund_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "faq.md",
+      "shipping_policy.pdf"
+    ],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [
+      0.5011,
+      0.4503,
+      0.4348
+    ],
+    "avg_similarity": 0.4620666666666667,
+    "latency_ms": 95,
+    "hallucination_score": 0.2,
+    "disposition": "escalated"
+  },
+  {
+    "query": "I want to return my shoes, how long until the refund processes to my card after you receive them?",
+    "type": "multi-step",
+    "expected": "refund_policy.pdf",
+    "actual_top": "premium_gold_policy.md",
+    "actual_top3": [
+      "premium_gold_policy.md",
+      "refund_policy.pdf",
+      "faq.md"
+    ],
+    "top1_match": false,
+    "top3_match": true,
+    "similarity_scores": [
+      0.4268,
+      0.3888,
+      0.3357
+    ],
+    "avg_similarity": 0.38376666666666664,
+    "latency_ms": 86,
+    "hallucination_score": 0.6,
+    "disposition": "escalated"
+  },
+  {
+    "query": "Can I get a refund if it has been 45 days?",
+    "type": "edge",
+    "expected": "refund_policy.pdf",
+    "actual_top": "refund_policy.pdf",
+    "actual_top3": [
+      "refund_policy.pdf",
+      "refund_policy.pdf",
+      "premium_gold_policy.md"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.3695,
+      0.3492,
+      0.3329
+    ],
+    "avg_similarity": 0.35053333333333336,
+    "latency_ms": 87,
+    "hallucination_score": 0.6,
+    "disposition": "escalated"
+  },
+  {
+    "query": "What is your reimbursement timeline?",
+    "type": "semantic",
+    "expected": "refund_policy.pdf",
+    "actual_top": "refund_policy.pdf",
+    "actual_top3": [
+      "refund_policy.pdf",
+      "refund_policy.pdf",
+      "refund_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.4607,
+      0.4031,
+      0.4012
+    ],
+    "avg_similarity": 0.4216666666666667,
+    "latency_ms": 72,
+    "hallucination_score": 0.6,
+    "disposition": "escalated"
+  },
+  {
+    "query": "How do I reset my password?",
+    "type": "exact",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": 0.0,
+    "disposition": "timeout"
+  },
+  {
+    "query": "I forgot my login details, can you help?",
+    "type": "semantic",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": "password_reset_guide.pdf",
+    "actual_top3": [
+      "password_reset_guide.pdf",
+      "faq.md",
+      "password_reset_guide.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.3366,
+      0.3143,
+      0.2806
+    ],
+    "avg_similarity": 0.3105,
+    "latency_ms": 77,
+    "hallucination_score": 0.2,
+    "disposition": "auto_resolved"
+  },
+  {
+    "query": "I am not receiving the 2FA code to reset my password.",
+    "type": "exact",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": "password_reset_guide.pdf",
+    "actual_top3": [
+      "password_reset_guide.pdf",
+      "faq.md",
+      "password_reset_guide.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.458,
+      0.4387,
+      0.3957
+    ],
+    "avg_similarity": 0.4308,
+    "latency_ms": 102,
+    "hallucination_score": 0.2,
+    "disposition": "escalated"
+  },
+  {
+    "query": "I can't get into my account anymore.",
+    "type": "ambiguous",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": "password_reset_guide.pdf",
+    "actual_top3": [
+      "password_reset_guide.pdf",
+      "faq.md",
+      "faq.md"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.3192,
+      0.2794,
+      0.2598
+    ],
+    "avg_similarity": 0.28613333333333335,
+    "latency_ms": 92,
+    "hallucination_score": 0.2,
+    "disposition": "escalated"
+  },
+  {
+    "query": "I clicked forgot password but the link expired, how do I get a new one?",
+    "type": "multi-step",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": "password_reset_guide.pdf",
+    "actual_top3": [
+      "password_reset_guide.pdf",
+      "password_reset_guide.pdf",
+      "faq.md"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.5525,
+      0.4464,
+      0.3995
+    ],
+    "avg_similarity": 0.46613333333333334,
+    "latency_ms": 72,
+    "hallucination_score": 0.0,
+    "disposition": "auto_resolved"
+  },
+  {
+    "query": "Where in the settings do I go to change my current password?",
+    "type": "semantic",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": "password_reset_guide.pdf",
+    "actual_top3": [
+      "password_reset_guide.pdf",
+      "password_reset_guide.pdf",
+      "password_reset_guide.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.2397,
+      0.2367,
+      0.2043
+    ],
+    "avg_similarity": 0.2269,
+    "latency_ms": 80,
+    "hallucination_score": 0.8,
+    "disposition": "escalated"
+  },
+  {
+    "query": "My account is locked after too many attempts.",
+    "type": "edge",
+    "expected": "password_reset_guide.pdf",
+    "actual_top": "faq.md",
+    "actual_top3": [
+      "faq.md",
+      "password_reset_guide.pdf",
+      "password_reset_guide.pdf"
+    ],
+    "top1_match": false,
+    "top3_match": true,
+    "similarity_scores": [
+      0.43,
+      0.4126,
+      0.3817
+    ],
+    "avg_similarity": 0.40809999999999996,
+    "latency_ms": 68,
+    "hallucination_score": 0.6,
+    "disposition": "escalated"
+  },
+  {
+    "query": "What is the timeline for express shipping?",
+    "type": "exact",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "shipping_policy.pdf",
+      "shipping_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.4255,
+      0.3518,
+      0.3515
+    ],
+    "avg_similarity": 0.3762666666666667,
+    "latency_ms": 85,
+    "hallucination_score": 0.5,
+    "disposition": "escalated"
+  },
+  {
+    "query": "How fast can you get a package to me in New York?",
+    "type": "semantic",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "shipping_policy.pdf",
+      "faq.md"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.4047,
+      0.3317,
+      0.3195
+    ],
+    "avg_similarity": 0.3519666666666666,
+    "latency_ms": 80,
+    "hallucination_score": 0.8,
+    "disposition": "escalated"
+  },
+  {
+    "query": "Do you ship internationally?",
+    "type": "exact",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "faq.md",
+      "shipping_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.3378,
+      0.281,
+      0.2469
+    ],
+    "avg_similarity": 0.2885666666666667,
+    "latency_ms": 69,
+    "hallucination_score": 0.5,
+    "disposition": "escalated"
+  },
+  {
+    "query": "Why hasn't my order shipped yet?",
+    "type": "ambiguous",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "shipping_policy.pdf",
+      "faq.md"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.345,
+      0.3313,
+      0.3261
+    ],
+    "avg_similarity": 0.33413333333333334,
+    "latency_ms": 76,
+    "hallucination_score": 0.2,
+    "disposition": "escalated"
+  },
+  {
+    "query": "The tracker says delivered but I don't have it, what is your policy on missing packages?",
+    "type": "multi-step",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "faq.md",
+      "shipping_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.377,
+      0.3016,
+      0.2818
+    ],
+    "avg_similarity": 0.3201333333333333,
+    "latency_ms": 72,
+    "hallucination_score": 0.2,
+    "disposition": "escalated"
+  },
+  {
+    "query": "Can you deliver oversized items to a PO Box?",
+    "type": "edge",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "shipping_policy.pdf",
+      "shipping_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.1148,
+      0.1136,
+      0.0792
+    ],
+    "avg_similarity": 0.10253333333333332,
+    "latency_ms": 84,
+    "hallucination_score": 0.8,
+    "disposition": "escalated"
+  },
+  {
+    "query": "How much does standard delivery cost?",
+    "type": "semantic",
+    "expected": "shipping_policy.pdf",
+    "actual_top": "shipping_policy.pdf",
+    "actual_top3": [
+      "shipping_policy.pdf",
+      "shipping_policy.pdf",
+      "shipping_policy.pdf"
+    ],
+    "top1_match": true,
+    "top3_match": true,
+    "similarity_scores": [
+      0.4892,
+      0.3181,
+      0.2411
+    ],
+    "avg_similarity": 0.34946666666666665,
+    "latency_ms": 87,
+    "hallucination_score": 0.5,
+    "disposition": "escalated"
+  },
+  {
+    "query": "How do I cancel my monthly subscription?",
+    "type": "exact",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Please stop charging my card every month.",
+    "type": "semantic",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Can I upgrade from basic to premium?",
+    "type": "exact",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "What do I get with the premium plan?",
+    "type": "ambiguous",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "If I cancel in the middle of the month, do I get a prorated refund for my subscription?",
+    "type": "multi-step",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Is it possible to pause my subscription for 3 months instead of canceling?",
+    "type": "edge",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Do you have a yearly billing option for a discount?",
+    "type": "semantic",
+    "expected": "subscription_policy.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "What are your customer support hours?",
+    "type": "exact",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Is there a phone number I can call to speak with someone?",
+    "type": "semantic",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Do your products come with a warranty?",
+    "type": "exact",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Do you offer student discounts?",
+    "type": "ambiguous",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Can I combine a gift card with a promo code on my purchase?",
+    "type": "multi-step",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Do you sell your items wholesale for other businesses?",
+    "type": "edge",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  },
+  {
+    "query": "Where are your physical retail stores located?",
+    "type": "semantic",
+    "expected": "faq.pdf",
+    "actual_top": null,
+    "actual_top3": [],
+    "top1_match": false,
+    "top3_match": false,
+    "similarity_scores": [],
+    "avg_similarity": 0,
+    "latency_ms": 0,
+    "hallucination_score": null,
+    "disposition": "failed"
+  }
+]
