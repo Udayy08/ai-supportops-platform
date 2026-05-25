@@ -63,6 +63,25 @@ async def get_metrics(
         avg_context_recall=0.0,
     )
 
+from app.schemas.evaluation import RetrievalEvaluationResponse, RetrievalTrendsResponse
+from app.services.evaluation_service import EvaluationService
+
+@router.get("/retrieval", response_model=RetrievalEvaluationResponse, summary="Get Retrieval Evaluation Metrics")
+async def get_retrieval_evaluation(
+    current_user: CurrentUser,
+    db: DBSession,
+) -> RetrievalEvaluationResponse:
+    service = EvaluationService(db)
+    return await service.get_retrieval_evaluation(current_user.tenant_id)
+
+
+@router.get("/retrieval/trends", response_model=RetrievalTrendsResponse, summary="Get Retrieval Trends")
+async def get_retrieval_trends(
+    current_user: CurrentUser,
+    db: DBSession,
+) -> RetrievalTrendsResponse:
+    service = EvaluationService(db)
+    return await service.get_trends(current_user.tenant_id)
 
 @router.get("/{eval_id}", response_model=EvaluationResponse, summary="Get evaluation detail")
 async def get_evaluation(
@@ -76,3 +95,6 @@ async def get_evaluation(
     if not evaluation:
         raise NotFoundException(detail=f"Evaluation '{eval_id}' not found.")
     return EvaluationResponse.model_validate(evaluation)
+
+
+

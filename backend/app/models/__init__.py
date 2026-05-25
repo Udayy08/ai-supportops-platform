@@ -45,6 +45,7 @@ from app.models.approval import ApprovalPriority, ApprovalRequest, ApprovalStatu
 
 # ── Evaluation ────────────────────────────────────────────────────────────────
 from app.models.evaluation import Evaluation, EvalType  # noqa: F401
+from app.models.retrieval_snapshot import RetrievalEvaluationSnapshot  # noqa: F401
 
 # ── Knowledge base ────────────────────────────────────────────────────────────
 from app.models.knowledge_article import KnowledgeArticle  # noqa: F401
@@ -74,7 +75,7 @@ __all__ = [
     # Approvals
     "ApprovalRequest", "ApprovalStatus", "ApprovalPriority",
     # Evaluation
-    "Evaluation", "EvalType",
+    "Evaluation", "EvalType", "RetrievalEvaluationSnapshot",
     # Knowledge
     "KnowledgeArticle",
     # Agent config
