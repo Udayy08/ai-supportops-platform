@@ -61,7 +61,7 @@ def get_llm(
         max_tokens:  Maximum generation tokens.
     """
     if provider == "groq":
-        return ChatGroq(
+        llm = ChatGroq(
             api_key=settings.groq_api_key,
             model=model or settings.groq_default_model,
             temperature=temperature,
@@ -71,12 +71,47 @@ def get_llm(
     # ── Future providers ─────────────────────────────────────────────────
     # elif provider == "openai":
     #     from langchain_openai import ChatOpenAI
-    #     return ChatOpenAI(api_key=settings.openai_api_key, model=model or "gpt-4o", ...)
+    #     llm = ChatOpenAI(api_key=settings.openai_api_key, model=model or "gpt-4o", ...)
     # elif provider == "anthropic":
     #     from langchain_anthropic import ChatAnthropic
-    #     return ChatAnthropic(...)
+    #     llm = ChatAnthropic(...)
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    # Add tenacity retries with custom logging
+    from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception, before_sleep_log
+    import logging
+    
+    logger = logging.getLogger(__name__)
+
+    def is_rate_limit(exception: BaseException) -> bool:
+        error_str = str(exception).lower()
+        return "429" in error_str or "rate limit" in error_str
+
+    class LLMWrapper:
+        def __init__(self, _llm):
+            self._llm = _llm
+
+        @retry(
+            wait=wait_exponential(multiplier=1, min=2, max=10),
+            stop=stop_after_attempt(4),  # 3 retries
+            retry=retry_if_exception(is_rate_limit),
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+            reraise=True
+        )
+        def invoke(self, *args, **kwargs):
+            return self._llm.invoke(*args, **kwargs)
+
+        def bind_tools(self, *args, **kwargs):
+            return LLMWrapper(self._llm.bind_tools(*args, **kwargs))
+            
+        def with_structured_output(self, *args, **kwargs):
+            return LLMWrapper(self._llm.with_structured_output(*args, **kwargs))
+
+        def __getattr__(self, name):
+            return getattr(self._llm, name)
+
+    return LLMWrapper(llm)
 
 
 def get_fast_llm(provider: LLMProvider = "groq", **kwargs) -> BaseChatModel:

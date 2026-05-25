@@ -31,11 +31,22 @@ def human_approval_node(state: SupportState) -> dict:
     if state.get("risk_level") == "high":
         reasons.append(f"High risk customer (sentiment: {state.get('sentiment', 'unknown')})")
 
+    if state.get("confidence_decision") == "escalated":
+        reason = state.get("retrieval_debug", {}).get("retrieval_failure_reason", "Low retrieval confidence")
+        score = state.get("retrieval_debug", {}).get("retrieval_confidence_score", 0.0)
+        reasons.append(f"Retrieval Escalted ({reason}): score {score}")
+
     escalation_reason = " | ".join(reasons) if reasons else "Low confidence response"
+
+    # Set fallback response if escalating from retrieval phase
+    proposed_response = state.get("proposed_response")
+    if not proposed_response and state.get("confidence_decision") == "escalated":
+        proposed_response = "I'm unable to find a confident answer for your query. Escalating this ticket to a human agent."
 
     return {
         "escalation_reason": escalation_reason,
         "approval_request_id": str(uuid.uuid4()),
         "final_disposition": "escalated",
+        "proposed_response": proposed_response,
         "nodes_visited": state.get("nodes_visited", []) + ["human_approval"],
     }
